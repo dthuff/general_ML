@@ -10,10 +10,19 @@ function [ ROC, pred, Mdl ] = train_knn( features, labels, cv_folds, positive_cl
 %   class for computing ROC metrics.
 % 
 % Outputs
-%   cv_X, cv_Y - coordinates of cv-averaged ROC curve with pointwise
-%   uncertainties
-%   cv_T - score thresholds corresponding to each pt on ROC curve
-%   cv_AUC - cv-averaged Area Under the ROC Curve, with lower and upper bounds
+%   ROC - structure containing ROC statistic information
+%       cv_X, cv_Y - coordinates of cv-averaged ROC curve with pointwise
+%       uncertainties
+%       cv_T - score thresholds corresponding to each pt on ROC curve
+%       cv_AUC - cv-averaged Area Under the ROC Curve, with lower and upper
+%       bounds
+
+%   pred - structure containing prediction information
+%        cv_true_labels_dict - test sets true labels
+%        cv_pred_labels_dict - test sets predicted labels
+%        cv_score_dict - test sets predicted scores 
+
+%   Mdl - trained model object
 %%
     % set up cv partitions
     cv = cvpartition(length(features),'KFold',cv_folds);

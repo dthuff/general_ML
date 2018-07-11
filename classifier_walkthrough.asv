@@ -42,7 +42,7 @@ title('Points in Normalized Feature Space');
 % Now we're ready to train our classifier.  We set up a number of cross
 % validation folds to prevent model overfitting and estimate the model
 % performance independent of which subset of the data is used for training
-cv_folds = 4;
+cv_folds = 2;
 positive_class = 1;
 
 % Here we train a support vector machine, which classifies data by 
@@ -78,13 +78,12 @@ ylim([0,1]);
 set(gca,'Xdir','reverse');
 xlabel('Specificity','fontsize',14)
 ylabel('Sensitivity','fontsize',14)
+mean_auc_str = num2str(ROC.cv_AUC(1),2);
+mean_auc_str = sprintf('%.2f', ROC.cv_AUC(1)-ROC.cv_AUC(2)))
 
-mean_auc_str = sprintf('%.2f', ROC.cv_AUC(1));
-sd_auc_str = sprintf('%.2f', abs(ROC.cv_AUC(1)-ROC.cv_AUC(2)));
-
-text(0.02, 0.05, ['AUC = ' mean_auc_str '\pm' sd_auc_str],...
-                'fontsize',14,...
-                'HorizontalAlignment','right');
+sd_auc_str = num2str(abs(ROC.cv_AUC(1)-ROC.cv_AUC(2)),2);
+sd_auc_str = sprintf('%.2f', abs(ROC.cv_AUC(1)-ROC.cv_AUC(2)))
+text(0.6, 0.15, ['AUC = ' mean_auc_str '\pm' sd_auc_str],'fontsize',12);
 title(['SVM Classification Performance (k = ' num2str(cv_folds) ')'],...
-        'fontsize',14);
+        'fontsize',14)
 
