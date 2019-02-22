@@ -1,4 +1,4 @@
-function [ ROC, pred, Mdl ] = train_rf( features, labels, cv_folds, positive_class )
+function [ ROC, pred, Mdl ] = train_rf( features, labels, cv_folds, positive_class, opt )
 %Trains a Random Forest model on data features with classes labels.
 
 % Inputs
@@ -8,6 +8,8 @@ function [ ROC, pred, Mdl ] = train_rf( features, labels, cv_folds, positive_cla
 %   cv_folds - an int.  number of cross validation folds
 %   positive_class - type must match labels.  Identifies the positive label
 %   class for computing ROC metrics.
+%   opt - boolean to perform hyperparameter optimization or not.  Increases
+%   training time significantly.
 % 
 % Outputs
 %   ROC - structure containing ROC statistic information
@@ -24,23 +26,24 @@ function [ ROC, pred, Mdl ] = train_rf( features, labels, cv_folds, positive_cla
 
 %   Mdl - trained model object
 %%
+    if opt
+        % list hyperparameters you want to tune, add them to hyperparametersRF
+        % minimum leaf size
+        min_ls = optimizableVariable('min_ls',[1, 20],'Type','integer');
+        % number of predictors to sample
+        num_pts = optimizableVariable('num_pts',[1, size(features,2)+1],'Type','integer');
+        % number of trees
+        num_trees = optimizableVariable('num_trees',[50, 500],'Type','integer');
+        hyperparametersRF = [min_ls; num_pts; num_trees];
 
-    % list hyperparameters you want to tune, add them to hyperparametersRF
-    % minimum leaf size
-    min_ls = optimizableVariable('min_ls',[1, 20],'Type','integer');
-    % number of predictors to sample
-    num_pts = optimizableVariable('num_pts',[1, size(features,2)-1],'Type','integer');
-    % number of trees
-    num_trees = optimizableVariable('num_trees',[50, 500],'Type','integer');
-    hyperparametersRF = [min_ls; num_pts; num_trees];
+        % determine optimal hyperparamters
+        opt_fun = @(params) oobErrRF(params, features, labels);
 
-    % determine optimal hyperparamters
-    opt_fun = @(params) oobErrRF(params, features, labels);
+        results = bayesopt(opt_fun, hyperparametersRF,...
+           'AcquisitionFunctionName','expected-improvement-plus','Verbose',0);
 
-    results = bayesopt(opt_fun, hyperparametersRF,...
-       'AcquisitionFunctionName','expected-improvement-plus','Verbose',0);
-
-    opt_h_params = results.XAtMinObjective;
+        opt_h_params = results.XAtMinObjective;
+    end
 
     % set up cv partitions
     cv = cvpartition(length(features),'KFold',cv_folds);
@@ -63,10 +66,15 @@ function [ ROC, pred, Mdl ] = train_rf( features, labels, cv_folds, positive_cla
         labels_test = labels(test_ind);
 
         % create and train random forest model
-        Mdl = TreeBagger(opt_h_params.num_trees, features_train, labels_train,...
-            'OOBPrediction','On','Method','classification',...
-            'MinLeafSize',opt_h_params.min_ls,...
-            'NumPredictorstoSample',opt_h_params.num_pts);
+        if opt
+            Mdl = TreeBagger(opt_h_params.num_trees, features_train, labels_train,...
+                'OOBPrediction','On','Method','classification',...
+                'MinLeafSize',opt_h_params.min_ls,...
+                'NumPredictorstoSample',opt_h_params.num_pts);
+        else
+            Mdl = TreeBagger(100, features_train, labels_train,...
+                'OOBPrediction','On','Method','classification');
+        end
 
         % use trained RF to produce test set predictions
         [predicted_test_labels, predicted_test_scores] = predict(Mdl, features_test);
@@ -81,7 +89,9 @@ function [ ROC, pred, Mdl ] = train_rf( features, labels, cv_folds, positive_cla
     end
         
     % perform cv-fold averaging of test set predictions
-    [ cv_X, cv_Y, cv_T, cv_AUC ] = perfcurve(cv_true_label_dict, cv_pred_score_dict, positive_class)
+    [ cv_X, cv_Y, cv_T, cv_AUC ] = perfcurve(cv_true_label_dict, ...
+                                             cv_pred_score_dict, ...
+                                             positive_class);
     
     %% store useful things in output structs
 

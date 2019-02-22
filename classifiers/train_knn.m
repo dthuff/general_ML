@@ -1,4 +1,4 @@
-function [ ROC, pred, Mdl ] = train_knn( features, labels, cv_folds, positive_class )
+function [ ROC, pred, Mdl ] = train_knn( features, labels, cv_folds, positive_class, opt )
 %Trains a k Nearest Neighbors model on data features with classes labels.
 
 % Inputs
@@ -8,6 +8,8 @@ function [ ROC, pred, Mdl ] = train_knn( features, labels, cv_folds, positive_cl
 %   cv_folds - an int.  number of cross validation folds
 %   positive_class - type must match labels.  Identifies the positive label
 %   class for computing ROC metrics.
+%   opt - boolean to perform hyperparameter optimization or not.  Increases
+%   training time significantly.
 % 
 % Outputs
 %   ROC - structure containing ROC statistic information
@@ -45,10 +47,14 @@ function [ ROC, pred, Mdl ] = train_knn( features, labels, cv_folds, positive_cl
         labels_test = labels(test_ind);
 
         % create and train the SVM
-        Mdl = fitcknn(features_train, labels_train,...
-            'OptimizeHyperparameters','auto',...
-            'HyperparameterOptimizationOptions',...
-            struct('AcquisitionFunctionName','expected-improvement-plus'));
+        if opt
+            Mdl = fitcknn(features_train, labels_train,...
+               'OptimizeHyperparameters','auto',...
+               'HyperparameterOptimizationOptions',...
+               struct('AcquisitionFunctionName','expected-improvement-plus'));
+        else
+            Mdl = fitcknn(features_train, labels_train);
+        end
 
         % use trained SVM to produce test set predictions
         [predicted_test_labels, predicted_test_scores] = predict(Mdl, features_test);
