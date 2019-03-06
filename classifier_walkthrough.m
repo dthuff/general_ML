@@ -42,14 +42,21 @@ title('Points in Normalized Feature Space');
 % Now we're ready to train our classifier.  We set up a number of cross
 % validation folds to prevent model overfitting and estimate the model
 % performance independent of which subset of the data is used for training
+% We also define the positive class, which is one of our labels, and
+% optionally decide whether or not to perform hyperparameter optimization.
+% Setting opt to true may increase performance, but can increase training
+% time significantly. For now, we will not worry about it.
 cv_folds = 4;
 positive_class = 1;
+opt = false;
 
 % Here we train a support vector machine, which classifies data by 
 % determining an optimal hyperplane in feature space to separate the data 
 % by class.  Training should take 30-60 sec per cv_fold.
 [ ROC, pred, Mdl ] = train_svm( n_features, labels,...
-                                              cv_folds, positive_class );
+                                          cv_folds, ...
+                                          positive_class, ...
+                                          opt );
 
 %% Model Assessment
 % The training functions return information to construct an ROC curve
